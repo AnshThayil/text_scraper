@@ -1,11 +1,12 @@
 import requests
 import sys
+import os
 import io
 import PyPDF2
 from bs4 import BeautifulSoup
 
 def encode_url(url):
-    return url.replace("/", "-").replace(":", "-").replace("?", "-") + '.txt'
+    return url.replace("/", "-").replace(":", "-").replace("?", "-")
 
 def scrape_text_from_pdf(r):
     fio = io.BytesIO(r.content)
@@ -24,20 +25,27 @@ def scrape_text_from_html(r):
     text = '\n'.join(chunk for chunk in chunks if chunk)
     return text
 
-def scrape_url(url):    
-    r = requests.get(url)
-    with open(encode_url(url), 'w+') as f:
-        content_type = r.headers.get('content-type')
-        if 'text/html' in content_type:
-            pass
-            print("Found HTML File at " + url)
-            text = scrape_text_from_html(r)
+def scrape_url(url, path_prefix = ''):    
+    r = requests.get(url, headers={'User-agent': 'Mozilla/5.0'})
+    # with open(encode_url(url), 'w+', encoding='utf-8') as f:
+    content_type = r.headers.get('content-type')
+    if 'text/html' in content_type:
+        pass
+        print("Found HTML File at " + url)
+        text = scrape_text_from_html(r)
+        with open(path_prefix + encode_url(url) + '.txt', 'w+', encoding='utf-8') as f:
             f.write(text)
 
-        elif 'application/pdf' in content_type:
-            print("Found PDF File at " + url)
-            text = scrape_text_from_pdf(r)
+    elif 'application/pdf' in content_type:
+        print("Found PDF File at " + url)
+        text = scrape_text_from_pdf(r)
+        encoded_url = encode_url(url)
+        if not os.path.exists(path_prefix + encoded_url):
+            os.makedirs(path_prefix + encoded_url)
+        with open(path_prefix + encoded_url + '/' + 'txt.txt', 'w+', encoding='utf-8') as f:
             f.write(text)
+        with open(path_prefix + encoded_url + '/' + 'pdf.pdf', 'wb+') as f:
+            f.write(r.content)
             
 
 
@@ -52,4 +60,6 @@ if __name__ == '__main__':
     elif sys.argv[1] == '--txt':
         with open(sys.argv[2], 'r') as f:
             for line in f.read().split('\n'):
-                scrape_url(line)
+                if not os.path.exists(sys.argv[2][:-4]):
+                    os.makedirs(sys.argv[2][:-4])
+                scrape_url(line, path_prefix=sys.argv[2][:-4] + '/')
