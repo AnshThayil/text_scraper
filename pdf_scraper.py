@@ -4,6 +4,11 @@ import os
 import io
 import PyPDF2
 from bs4 import BeautifulSoup
+import pytesseract
+from PIL import Image
+from wand.image import Image as wi
+
+pytesseract.pytesseract.tesseract_cmd = 'C:\\Users\\anshthayil\\AppData\\Local\\Programs\\Tesseract-OCR\\tesseract.exe'
 
 def encode_url(url):
     return url.replace("/", "-").replace(":", "-").replace("?", "-")
@@ -24,6 +29,22 @@ def scrape_text_from_html(r):
     chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
     text = '\n'.join(chunk for chunk in chunks if chunk)
     return text
+
+def scrape_text_from_img(pdf_path):
+    pdf=wi(filename=pdf_path,resolution=300)
+    pdfImg=pdf.convert('jpeg')
+    imgBlobs=[]
+    extracted_text=[]
+    for img in pdfImg.sequence:
+        page=wi(image=img)
+        imgBlobs.append(page.make_blob('jpeg'))
+
+    for imgBlob in imgBlobs:
+        im=Image.open(io.BytesIO(imgBlob))
+        text=pytesseract.image_to_string(im,lang='eng')
+        extracted_text.append(text)
+
+    return (extracted_text)
 
 def scrape_url(url, path_prefix = ''):    
     r = requests.get(url, headers={'User-agent': 'Mozilla/5.0'})
@@ -46,6 +67,12 @@ def scrape_url(url, path_prefix = ''):
             f.write(text)
         with open(path_prefix + encoded_url + '/' + 'pdf.pdf', 'wb+') as f:
             f.write(r.content)
+
+        if text == '':
+            out = scrape_text_from_img(path_prefix + encoded_url + '/' + 'pdf.pdf')
+            with open(path_prefix + encoded_url + '/' + 'txt.txt', 'w+') as f:
+                for text in out:
+                    f.write(text)
             
 
 
