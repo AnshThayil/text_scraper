@@ -1,4 +1,5 @@
 import requests
+import time
 import sys
 import os
 import io
@@ -7,8 +8,9 @@ from bs4 import BeautifulSoup
 import pytesseract
 from PIL import Image
 from wand.image import Image as wi
+from dotenv import dotenv_values
 
-pytesseract.pytesseract.tesseract_cmd = 'C:\\Users\\anshthayil\\AppData\\Local\\Programs\\Tesseract-OCR\\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = dotenv_values('.env')["tesseract_path"] 
 
 def encode_url(url):
     return url.replace("/", "-").replace(":", "-").replace("?", "-")
@@ -90,3 +92,4 @@ if __name__ == '__main__':
                 if not os.path.exists(sys.argv[2][:-4]):
                     os.makedirs(sys.argv[2][:-4])
                 scrape_url(line, path_prefix=sys.argv[2][:-4] + '/')
+                # time.sleep(5)
